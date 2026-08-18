@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora de Caso de Negocio — ROI / VOI</title>
+<style>
+  :root{
+    --ink:#1B1B1B;
+    --ink-soft:#5C5C5C;
+    --ink-faint:#8F8F8F;
+    --paper:#F2F2F2;
+    --panel:#FFFFFF;
+    --line:#D6D6D6;
+    --line-soft:#E9E9E9;
+    --red:#B23A3A;
+    --red-bg:#EFE1E1;
+    --blue:#2A5CAE;
+    --blue-bg:#E3E9F3;
+    --green:#2F7D4F;
+    --green-bg:#E1EDE5;
+    --font-display: Georgia, 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', serif;
+    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    --accent:#3D3D3D;
+    --accent-bg:#E6E6E6;
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+  }
+
+  :focus-visible{
+    outline:2px solid var(--ink);
+    outline-offset:2px;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; animation:none !important; }
+  }
+
+  .app{ max-width:1180px; margin:0 auto; padding:28px 24px 60px; }
+
+  /* ---------- HEADER ---------- */
+  .topbar{
+    display:flex; justify-content:space-between; align-items:flex-end;
+    gap:24px; flex-wrap:wrap;
+    padding-bottom:20px; margin-bottom:24px;
+    border-bottom:1px solid var(--line);
+  }
+  .eyebrow{
+    display:block; font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    color:#4F59E8; font-weight:600; margin-bottom:8px;
+  }
+  h1{
+    font-family:var(--font-display); font-weight:600; font-size:32px;
+    margin:0 0 6px; letter-spacing:-.01em; color:var(--ink);
+  }
+  .subtitle{ margin:0; color:var(--ink-soft); font-size:14.5px; max-width:520px; }
+  .print-meta{ display:none; }
+
+  .mode-switch{
+    display:inline-flex; border:1px solid var(--ink); border-radius:999px;
+    padding:3px; background:var(--panel); flex-shrink:0;
+  }
+  .mode-btn{
+    font-family:var(--font-mono); font-size:13px; letter-spacing:.04em;
+    border:none; background:transparent; color:var(--ink);
+    padding:9px 20px; border-radius:999px; cursor:pointer;
+    font-weight:600;
+  }
+  .mode-btn.active{ background:var(--ink); color:var(--paper); }
+  .mode-btn:not(.active):hover{ background:var(--line-soft); }
+
+  .controls-stack{ display:flex; flex-direction:column; align-items:flex-end; gap:8px; flex-shrink:0; }
+  @media (max-width:520px){ .controls-stack{ align-items:stretch; } }
+  .currency-switch{
+    display:inline-flex; border:1px solid var(--line); border-radius:999px;
+    padding:3px; background:var(--panel); align-self:flex-end;
+  }
+  @media (max-width:520px){ .currency-switch{ align-self:stretch; justify-content:center; } }
+  .currency-btn{
+    font-family:var(--font-mono); font-size:12px; border:none; background:transparent;
+    color:var(--ink-soft); padding:7px 14px; border-radius:999px; cursor:pointer; font-weight:600;
+  }
+  .currency-btn.active{ background:var(--ink); color:var(--paper); }
+  .currency-btn:not(.active):hover{ background:var(--line-soft); }
+
+  /* ---------- GUIDED INTRO ---------- */
+  .guide-card{
+    border:1px solid var(--line); background:var(--paper); border-radius:12px;
+    padding:16px 18px; margin-bottom:20px;
+  }
+  .guide-card h3{ font-family:var(--font-display); font-size:15.5px; margin:0 0 3px; color:#4F59E8; }
+  .guide-card .guide-hint{ margin:0 0 12px; font-size:12.5px; color:var(--ink-soft); }
+  .guide-options{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:520px){ .guide-options{ grid-template-columns:1fr; } }
+  .guide-opt{
+    text-align:left; border:1px solid var(--line); background:var(--panel);
+    border-radius:10px; padding:12px 14px; cursor:pointer;
+  }
+  .guide-opt:hover{ border-color:var(--ink); }
+  .guide-opt b{ display:block; font-size:13px; margin-bottom:4px; }
+  .guide-opt span{ font-size:12px; color:var(--ink-soft); line-height:1.4; }
+
+  .guide-recap{
+    display:none; align-items:center; justify-content:space-between; gap:8px;
+    font-size:12.5px; color:var(--ink); border:1px solid var(--line); border-radius:10px;
+    padding:10px 14px; margin-bottom:20px; background:var(--accent-bg);
+  }
+  .guide-recap.show{ display:flex; }
+  .guide-recap button{
+    font-size:12px; border:none; background:none; color:var(--accent);
+    font-weight:700; cursor:pointer; text-decoration:underline; padding:0; flex-shrink:0;
+  }
+
+  /* ---------- WORKSPACE ---------- */
+  .workspace{
+    display:grid; grid-template-columns:1.1fr 1fr; gap:20px;
+    align-items:start;
+  }
+  @media (max-width:860px){ .workspace{ grid-template-columns:1fr; } }
+
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:24px;
+  }
+
+  .panel h2{
+    font-family:var(--font-display); font-size:18px; margin:0 0 4px; font-weight:600;
+    color:#4F59E8;
+  }
+  .panel .panel-hint{ margin:0 0 20px; color:var(--ink-soft); font-size:13.5px; }
+
+  .subsection{ margin:26px 0 4px; }
+  .subsection:first-of-type{ margin-top:6px; }
+  .subsection-head{
+    display:flex; align-items:flex-start; gap:10px;
+    padding-bottom:10px; margin-bottom:16px; border-bottom:1px solid var(--line);
+  }
+  .subsection-num{
+    font-family:var(--font-mono); font-size:11px; color:var(--ink-faint);
+    border:1px solid var(--line); border-radius:50%; width:20px; height:20px;
+    display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
+    margin-top:1px;
+  }
+  .subsection-title{ font-family:var(--font-display); font-size:14.5px; font-weight:600; color:#4F59E8; }
+  .subsection-sub{ margin:2px 0 0; font-size:12px; color:var(--ink-soft); line-height:1.4; }
+
+  .examples-row{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    margin-bottom:20px; padding-bottom:18px; border-bottom:1px dashed var(--line);
+  }
+  .examples-row span{ font-size:12.5px; color:var(--ink-faint); margin-right:2px; }
+  .example-btn{
+    font-size:12.5px; border:1px solid var(--line); background:var(--paper);
+    color:var(--ink-soft); padding:6px 12px; border-radius:999px; cursor:pointer;
+  }
+  .example-btn:hover{ border-color:var(--accent); color:var(--accent); }
+
+  .field{ margin-bottom:16px; }
+  .field label{
+    display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+    font-size:13px; font-weight:600; color:var(--ink); margin-bottom:6px;
+  }
+  .field .unit-label{ font-weight:400; color:var(--ink-faint); font-size:12px; }
+  .field input[type="text"], .field input[type="number"]{
+    width:100%; font-family:var(--font-mono); font-size:15px;
+    border:1px solid var(--line); border-radius:8px; padding:10px 12px;
+    background:var(--paper); color:var(--ink);
+  }
+  .field input:focus{ background:var(--panel); }
+  .field.invalid input{ border-color:var(--red); background:var(--red-bg); }
+  .field.invalid .field-note{ color:var(--red); }
+  .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .field-row.uneven{ grid-template-columns:1.3fr 1fr; }
+  @media (max-width:520px){ .field-row, .field-row.uneven{ grid-template-columns:1fr; } }
+  .field-note{ font-size:12px; color:var(--ink-soft); margin:6px 0 0; line-height:1.4; }
+  .req-mark{ color:var(--red); font-weight:700; margin-left:1px; }
+  .req-legend{ margin:-8px 0 18px; font-size:12px; color:var(--ink-soft); }
+
+  .info-btn{
+    width:16px; height:16px; border-radius:50%; border:1px solid var(--ink-faint);
+    background:none; color:var(--ink-faint); font-size:10px; line-height:1;
+    cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+    font-weight:700; flex-shrink:0; padding:0;
+  }
+  .info-btn:hover, .info-btn.open{ border-color:var(--accent); color:var(--accent); }
+  .tooltip{
+    display:none; font-size:12.5px; color:var(--ink-soft); background:var(--accent-bg);
+    border-radius:8px; padding:10px 12px; margin:-4px 0 12px; line-height:1.45;
+  }
+  .tooltip.show{ display:block; }
+
+  /* ---------- CHIP TOGGLES (fuente) ---------- */
+  .chip-toggle{ display:flex; gap:8px; margin:2px 0 10px; }
+  .chip-opt{
+    flex:1; font-size:12.5px; font-weight:600; text-align:center;
+    border:1px solid var(--line); background:var(--panel); color:var(--ink-soft);
+    padding:9px 8px; border-radius:8px; cursor:pointer; line-height:1.3;
+  }
+  .chip-opt.active{ border-color:var(--accent); color:var(--accent); background:var(--accent-bg); }
+
+  /* ---------- RECEIPT ---------- */
+  .receipt-panel{ display:flex; flex-direction:column; gap:20px; }
+  .receipt{
+    background:var(--panel); border:1px solid var(--ink);
+    position:relative; padding:22px 20px 26px;
+  }
+  .receipt::after{
+    content:""; position:absolute; left:0; right:0; bottom:-9px; height:9px;
+    background-image:
+      linear-gradient(135deg, var(--panel) 50%, transparent 50%),
+      linear-gradient(45deg, var(--panel) 50%, transparent 50%);
+    background-size:14px 14px; background-position:0 0, 7px 0; background-repeat:repeat-x;
+  }
+  .receipt-head{
+    font-family:var(--font-mono); font-size:11.5px; letter-spacing:.16em;
+    text-align:center; color:var(--ink-soft); border-bottom:1px dashed var(--line);
+    padding-bottom:12px; margin-bottom:12px; text-transform:uppercase;
+  }
+  .receipt-lines{ font-family:var(--font-mono); font-size:13px; }
+  .r-line{
+    display:flex; justify-content:space-between; gap:12px;
+    padding:5px 0; color:var(--ink-soft);
+  }
+  .r-line .r-label{ flex:1 1 auto; min-width:0; overflow-wrap:break-word; }
+  .r-line .r-val{ color:var(--ink); text-align:right; flex-shrink:0; white-space:nowrap; }
+  .r-line .r-val.r-neg{ color:var(--red); }
+  .r-line .r-val.r-pos{ color:var(--blue); }
+  .r-line .r-val.r-zero{ color:var(--ink); }
+  .r-line.r-sub{ padding-left:14px; color:var(--ink-faint); font-size:12px; }
+  .r-line.r-op{ color:var(--ink-faint); }
+  .r-divider{ border-top:1px dashed var(--line); margin:10px 0; }
+  .r-missing-head{
+    color:var(--red); font-weight:700; font-size:12.5px; letter-spacing:.04em;
+    margin-bottom:8px;
+  }
+  .r-missing-item{
+    color:var(--red); font-size:12.5px; font-weight:600; padding:4px 0 4px 14px;
+    position:relative;
+  }
+  .r-missing-item::before{ content:'•'; position:absolute; left:0; }
+  .receipt-total{
+    display:flex; justify-content:space-between; align-items:baseline;
+    border-top:2px solid var(--ink); margin-top:6px; padding-top:12px;
+  }
+  .receipt-total .r-label{
+    font-family:var(--font-mono); font-size:12.5px; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--ink-soft);
+  }
+  #resultValue{
+    font-family:var(--font-display); font-size:34px; font-weight:700; color:var(--ink);
+  }
+  #resultValue.dim{ color:var(--ink-faint) !important; }
+  .receipt-tagline{
+    text-align:center; font-size:11.5px; color:var(--ink-faint); margin-top:14px;
+    font-style:italic;
+  }
+
+  /* ---------- METER ---------- */
+  .meter-wrap{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:22px 24px; }
+  .meter-title{ font-size:12.5px; font-weight:600; color:var(--ink-soft); margin-bottom:2px;
+    text-transform:uppercase; letter-spacing:.06em; }
+  .meter-desc{ font-size:12px; color:var(--ink-faint); margin:0 0 14px; line-height:1.45; max-width:440px; }
+  .meter-track{
+    position:relative; height:10px; border-radius:6px; overflow:visible;
+    display:flex;
+  }
+  .meter-zone{ height:100%; }
+  .meter-zone.z-1{ background:#E4E4E4; border-radius:6px 0 0 6px; }
+  .meter-zone.z-2{ background:#D4D4D4; }
+  .meter-zone.z-3{ background:#C4C4C4; }
+  .meter-zone.z-4{ background:#B4B4B4; border-radius:0 6px 6px 0; }
+  .meter-marker{
+    position:absolute; top:-5px; width:3px; height:20px; background:var(--ink);
+    border-radius:2px; transform:translateX(-50%); transition:left .35s ease;
+  }
+  .meter-scale{ display:flex; justify-content:space-between; font-family:var(--font-mono);
+    font-size:10.5px; color:var(--ink-faint); margin-top:8px; }
+  .meter-readout{ margin-top:16px; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .meter-readout .big{ font-family:var(--font-display); font-size:26px; font-weight:700; color:var(--ink); }
+  .meter-ratio{ margin:10px 0 0; font-size:12.5px; color:var(--ink-soft); line-height:1.45; }
+  .meter-ratio .ratio-num{ font-family:var(--font-mono); font-weight:700; color:var(--ink); }
+  .ratio-explainer{ margin-top:10px; }
+  .meter-readout .tag{
+    font-size:12px; font-weight:600; padding:3px 10px; border-radius:999px;
+    background:var(--line-soft); color:var(--ink);
+  }
+  .caution{
+    margin-top:14px; font-size:12.5px; color:var(--ink); background:var(--line-soft);
+    border-left:3px solid var(--ink-soft); padding:10px 12px; border-radius:0 8px 8px 0;
+  }
+  .caution div + div{ margin-top:6px; }
+
+  /* ---------- INFO / TUTORIAL DETAILS ---------- */
+  details.info-details{
+    border:1px solid var(--line); border-radius:10px; padding:0;
+    margin-top:14px; background:var(--paper); overflow:hidden;
+  }
+  details.info-details summary{
+    cursor:pointer; padding:12px 14px; font-size:13px; font-weight:600; color:#4F59E8;
+    list-style:none; display:flex; justify-content:space-between; align-items:center;
+  }
+  details.info-details summary::-webkit-details-marker{ display:none; }
+  details.info-details summary::after{ content:'+'; font-size:16px; color:var(--ink-faint); flex-shrink:0; }
+  details.info-details[open] summary::after{ content:'\2212'; }
+  details.info-details .details-body{ padding:0 14px 14px; font-size:12.5px; color:var(--ink-soft); line-height:1.6; }
+  details.info-details .details-body dt{ font-weight:700; color:var(--ink); margin-top:10px; }
+  details.info-details .details-body dt:first-child{ margin-top:0; }
+  details.info-details .details-body dd{ margin:2px 0 0; }
+  .tutorial-block{
+    font-family:var(--font-mono); font-size:12px; background:var(--panel);
+    border:1px dashed var(--line); border-radius:8px; padding:10px 12px;
+    white-space:pre-wrap; line-height:1.65; color:var(--ink-soft);
+  }
+
+  /* ---------- FOOTER ---------- */
+  footer{
+    display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap;
+    gap:14px; margin-top:28px; padding-top:20px; border-top:1px solid var(--line);
+  }
+  .footer-actions{ display:flex; gap:10px; }
+  .btn{
+    font-family:var(--font-body); font-size:13px; font-weight:600;
+    border-radius:8px; padding:10px 16px; cursor:pointer; border:1px solid var(--ink);
+    background:var(--ink); color:var(--paper);
+  }
+  .btn.secondary{ background:transparent; color:var(--ink); }
+  .btn.secondary:hover{ background:var(--line-soft); }
+  .credit{ font-size:12px; color:var(--ink-faint); }
+  .credit em{ color:var(--ink-soft); font-style:italic; }
+
+  @media print{
+    body{ background:#fff; }
+    .app{ max-width:100%; padding:10px 16px 14px; }
+    .workspace{ grid-template-columns:1fr; }
+    .input-panel{ display:none; }
+    .footer-actions{ display:none; }
+    .controls-stack{ display:none; }
+    .subtitle{ max-width:none; }
+    .print-meta{
+      display:block; font-family:var(--font-mono); font-size:11px;
+      color:var(--ink-soft); margin-top:6px;
+    }
+    .topbar{ padding-bottom:10px; margin-bottom:14px; }
+    h1{ font-size:24px; margin:0 0 4px; }
+    .eyebrow{ font-size:10px; margin-bottom:4px; }
+    .subtitle{ font-size:12px; }
+    .receipt-panel{ gap:12px; }
+    .receipt{ padding:14px 16px 18px; }
+    .receipt::after{ display:none; }
+    .receipt-head{ font-size:10.5px; padding-bottom:8px; margin-bottom:8px; }
+    .receipt-lines{ font-size:11.5px; }
+    .r-line{ padding:3px 0; }
+    #resultValue{ font-size:26px; }
+    .receipt-tagline{ margin-top:8px; }
+    .meter-wrap{ padding:14px 16px; }
+    .meter-title{ margin-bottom:2px; }
+    .meter-desc{ font-size:11px; margin-bottom:10px; }
+    .meter-readout{ margin-top:10px; }
+    .meter-readout .big{ font-size:20px; }
+    .meter-ratio{ font-size:11px; margin-top:6px; }
+    .ratio-explainer{ display:none; }
+    .caution{ font-size:11px; padding:8px 10px; margin-top:10px; }
+    footer{ margin-top:14px; padding-top:12px; }
+    .credit{ font-size:10.5px; }
+    .receipt, .meter-wrap, footer{ page-break-inside:avoid; }
+    .print-inputs{
+      display:block; margin-bottom:14px; border:1px solid var(--ink);
+      padding:12px 16px 14px; font-family:var(--font-mono);
+    }
+    .print-sub{ page-break-inside:avoid; margin-bottom:10px; }
+    .print-sub-title{
+      font-family:var(--font-display); font-size:12px; font-weight:700;
+      color:#4F59E8; margin:0 0 4px;
+    }
+    .print-inputs .r-line{ padding:2px 0; }
+  }
+  .print-inputs{ display:none; }
+  @page{ margin:10mm; }
+</style>
+</head>
+<body class="mode-roi">
+<div class="app">
+
+  <header class="topbar">
+    <div>
+      <span class="eyebrow">Iniciativas de Cultura Organizacional</span>
+      <h1>Calculadora ROI / VOI</h1>
+      <p class="subtitle">Este instrumento ha sido diseñado por <em>Brando Maco</em> para traducir las iniciativas de cultura en un número que un comité directivo pueda evaluar, mostrando la lógica del cálculo realizado.</p>
+      <p class="print-meta" id="printMeta">Tipo de análisis: ROI · Moneda: Soles (S/)</p>
+    </div>
+    <div class="controls-stack">
+      <div class="mode-switch" role="tablist" aria-label="Tipo de cálculo">
+        <button class="mode-btn active" data-mode="roi" role="tab" aria-selected="true">ROI · beneficio financiero</button>
+        <button class="mode-btn" data-mode="voi" role="tab" aria-selected="false">VOI · valor proxy</button>
+      </div>
+      <div class="currency-switch" role="tablist" aria-label="Moneda">
+        <button class="currency-btn active" data-currency="PEN" role="tab" aria-selected="true">S/ Soles</button>
+        <button class="currency-btn" data-currency="USD" role="tab" aria-selected="false">$ Dólares</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- INPUT PANEL -->
+    <section class="panel input-panel">
+
+      <!-- GUIDED SELECTOR -->
+      <div class="guide-card" id="guideCard">
+        <h3>¿No sabes si tu caso es ROI o VOI?</h3>
+        <p class="guide-hint">Responde esto y elegimos el modo correcto por ti.</p>
+        <div class="guide-options">
+          <div class="guide-opt" data-target="roi">
+            <b>El beneficio ya se mide en soles</b>
+            <span>Ahorro directo, costo evitado o ingreso adicional, sin pasos intermedios → modo ROI</span>
+          </div>
+          <div class="guide-opt" data-target="voi">
+            <b>El beneficio viene de una encuesta o percepción</b>
+            <span>Engagement, eNPS, clima, confianza — necesitas convertirlo a soles → modo VOI</span>
+          </div>
+        </div>
+      </div>
+      <div class="guide-recap" id="guideRecap">
+        <span id="guideRecapText">Estás en modo ROI.</span>
+        <button type="button" id="guideChange">Cambiar</button>
+      </div>
+
+      <div class="examples-row">
+        <span>Cargar ejemplo:</span>
+        <button class="example-btn" data-example="bienestar">Programa de bienestar (ROI)</button>
+        <button class="example-btn" data-example="flex">Horario híbrido (VOI)</button>
+        <button class="example-btn" data-example="clear">Limpiar</button>
+      </div>
+
+      <!-- ROI FORM -->
+      <form id="roiForm">
+        <h2>Datos del caso — ROI</h2>
+        <p class="panel-hint">Usa este modo cuando el beneficio de la iniciativa ya se puede expresar directamente en soles (ahorro, ingreso adicional, costo evitado).</p>
+        <p class="req-legend"><span class="req-mark">*</span> Campo obligatorio para calcular.</p>
+
+        <div class="subsection">
+          <div class="subsection-head">
+            <span class="subsection-num">1</span>
+            <div>
+              <div class="subsection-title">Costo de la iniciativa</div>
+              <p class="subsection-sub">Lo que vas a invertir.</p>
+            </div>
+          </div>
+          <div class="field">
+            <label for="roiCosto">Costo de la iniciativa<span class="req-mark">*</span> <span class="unit-label" id="curLabel1">(S/, anual)</span></label>
+            <input type="number" id="roiCosto" min="0" step="any" value="50000">
+            <p class="field-note">Cuánto cuesta implementar la iniciativa durante un año.</p>
+          </div>
+        </div>
+
+        <div class="subsection">
+          <div class="subsection-head">
+            <span class="subsection-num">2</span>
+            <div>
+              <div class="subsection-title">Beneficio financiero</div>
+              <p class="subsection-sub">Lo que la iniciativa genera o ahorra, ya en soles.</p>
+            </div>
+          </div>
+          <div class="field">
+            <label for="roiBeneficio">
+              Beneficio financiero directo<span class="req-mark">*</span> <span class="unit-label" id="curLabel2">(S/)</span>
+              <button type="button" class="info-btn" data-tip="tip-roi-beneficio">i</button>
+            </label>
+            <div class="tooltip" id="tip-roi-beneficio">Dinero real ganado o ahorrado por la iniciativa: menor costo de reemplazo, menor ausentismo convertido a horas-productivas, ingresos incrementales, etc. Debe ser defendible ante finanzas.</div>
+            <input type="number" id="roiBeneficio" min="0" step="any" value="150000">
+            <p class="field-note">El dinero que la iniciativa genera o ahorra, ya expresado directamente en soles.</p>
+          </div>
+        </div>
+      </form>
+
+      <!-- VOI FORM -->
+      <form id="voiForm" hidden>
+        <h2>Datos del caso — VOI</h2>
+        <p class="panel-hint">Usa este modo cuando el beneficio no es directamente financiero (compromiso, clima, confianza) y necesitas una métrica proxy con una correlación conocida hacia un resultado de negocio.</p>
+        <p class="req-legend"><span class="req-mark">*</span> Campo obligatorio para calcular.</p>
+
+        <div class="subsection">
+          <div class="subsection-head">
+            <span class="subsection-num">1</span>
+            <div>
+              <div class="subsection-title">Costo de la iniciativa</div>
+              <p class="subsection-sub">Lo que vas a invertir.</p>
+            </div>
+          </div>
+          <div class="field">
+            <label for="voiCosto">Costo de la iniciativa<span class="req-mark">*</span> <span class="unit-label" id="curLabel3">(S/, anual)</span></label>
+            <input type="number" id="voiCosto" min="0" step="any" value="45000">
+            <p class="field-note">Cuánto cuesta implementar la iniciativa durante un año.</p>
+          </div>
+        </div>
+
+        <div class="subsection">
+          <div class="subsection-head">
+            <span class="subsection-num">2</span>
+            <div>
+              <div class="subsection-title">Tu métrica proxy</div>
+              <p class="subsection-sub">La encuesta o percepción que sí mediste antes y después.</p>
+            </div>
+          </div>
+
+          <div class="field-row uneven">
+            <div class="field">
+              <label for="voiMetrica">Métrica proxy<span class="req-mark">*</span></label>
+              <input type="text" id="voiMetrica" value="eNPS">
+              <p class="field-note">El nombre de tu encuesta o indicador de percepción (ej. eNPS, clima, engagement).</p>
+            </div>
+            <div class="field">
+              <label for="voiEscala">
+                Escala <span class="unit-label">(opcional)</span>
+                <button type="button" class="info-btn" data-tip="tip-escala">i</button>
+              </label>
+              <input type="text" id="voiEscala" placeholder="ej. -100 a 100">
+              <p class="field-note">Solo para referencia, no participa en el cálculo.</p>
+            </div>
+          </div>
+          <div class="tooltip" id="tip-escala">Solo para referencia en el recibo — ayuda a interpretar si "34" es alto o bajo dentro de su propia escala. No participa en el cálculo.</div>
+
+          <div class="field">
+            <label for="voiPeriodo">
+              Periodo de medición<span class="req-mark">*</span> <span class="unit-label">(meses)</span>
+              <button type="button" class="info-btn" data-tip="tip-periodo">i</button>
+            </label>
+            <div class="tooltip" id="tip-periodo">¿En cuántos meses observaste el cambio de "antes" a "después"? El costo de la iniciativa se asume anual, así que si mediste en menos de 12 meses, la calculadora anualiza el valor estimado para que ambos sean comparables.</div>
+            <input type="number" id="voiPeriodo" min="1" step="1" value="12">
+            <p class="field-note">Cuántos meses pasaron entre tu medición "antes" y tu medición "después".</p>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="voiAntes">Valor antes<span class="req-mark">*</span> <span class="unit-label">(línea base de <span id="lblProxy1">eNPS</span>)</span></label>
+              <input type="number" id="voiAntes" step="any" value="12">
+              <p class="field-note">El valor de tu métrica proxy al inicio, antes de la iniciativa.</p>
+            </div>
+            <div class="field">
+              <label for="voiDespues">Valor después<span class="req-mark">*</span> <span class="unit-label">(<span id="lblProxy2">eNPS</span>)</span></label>
+              <input type="number" id="voiDespues" step="any" value="34">
+              <p class="field-note">El valor de tu métrica proxy al final del periodo medido.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="subsection">
+          <div class="subsection-head">
+            <span class="subsection-num">3</span>
+            <div>
+              <div class="subsection-title">Tu métrica de negocio</div>
+              <p class="subsection-sub">El problema real que esperas que se mueva junto con el proxy.</p>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="voiMetricaNegocio">Métrica de negocio afectada<span class="req-mark">*</span></label>
+            <input type="text" id="voiMetricaNegocio" value="rotación">
+            <p class="field-note">El problema real que esperas que mejore (ej. rotación, ausentismo, incidentes).</p>
+          </div>
+
+          <div class="field">
+            <label>
+              Origen de estos datos
+              <button type="button" class="info-btn" data-tip="tip-fuente">i</button>
+            </label>
+            <div class="tooltip" id="tip-fuente">¿Los valores de "antes" y "después" de tu métrica de negocio (justo debajo) los mediste tú en tu organización, o los estás estimando a partir de un estudio publicado? Esto determina qué tan defendible es tu factor de conversión, que se calcula solo a partir de estos datos.</div>
+            <div class="chip-toggle" role="tablist" aria-label="Origen de los datos de la métrica de negocio">
+              <button type="button" class="chip-opt active" data-group="source" data-value="propio">Dato propio</button>
+              <button type="button" class="chip-opt" data-group="source" data-value="externo">Benchmark externo</button>
+            </div>
+            <div class="field" id="sourceCiteField" hidden>
+              <label for="voiFuente">Fuente del benchmark</label>
+              <input type="text" id="voiFuente" placeholder="Ej. Gallup Q12 Meta-Analysis, 2024" value="">
+            </div>
+            <p class="field-note" id="sourceNote">Los valores de "antes" y "después" de tu métrica de negocio fueron medidos directamente en tu organización.</p>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="voiNegAntes">Valor antes<span class="req-mark">*</span> <span class="unit-label">(línea base de <span id="lblNeg1">rotación</span>)</span></label>
+              <input type="number" id="voiNegAntes" step="any" value="28">
+              <p class="field-note">El valor de tu métrica de negocio al inicio, en el mismo periodo.</p>
+            </div>
+            <div class="field">
+              <label for="voiNegDespues">Valor después<span class="req-mark">*</span> <span class="unit-label">(<span id="lblNeg2">rotación</span>)</span></label>
+              <input type="number" id="voiNegDespues" step="any" value="20.3">
+              <p class="field-note">El valor de tu métrica de negocio al final del periodo medido.</p>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Factor de conversión <span class="unit-label">(resultado automático — no se edita)</span></label>
+            <div class="tutorial-block" id="factorAutoDisplay"></div>
+          </div>
+        </div>
+
+        <div class="subsection">
+          <div class="subsection-head">
+            <span class="subsection-num">4</span>
+            <div>
+              <div class="subsection-title">Traducir a soles</div>
+              <p class="subsection-sub">De puntos porcentuales a dinero real.</p>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="voiPoblacion">Población en el alcance<span class="req-mark">*</span></label>
+              <input type="number" id="voiPoblacion" min="0" step="1" value="180">
+              <p class="field-note">Cuántos colaboradores están dentro del alcance de la iniciativa.</p>
+            </div>
+            <div class="field">
+              <label for="voiValorUnitario">
+                Valor por evento<span class="req-mark">*</span> <span class="unit-label" id="curLabel4">(S/)</span>
+                <button type="button" class="info-btn" data-tip="tip-valorunit">i</button>
+              </label>
+              <div class="tooltip" id="tip-valorunit">Ej. costo promedio de reemplazar a una persona que renuncia. Se usa para convertir "puntos de rotación evitados" en soles.</div>
+              <input type="number" id="voiValorUnitario" min="0" step="any" value="18000">
+              <p class="field-note">Cuánto cuesta cada caso (ej. costo de reemplazar a una persona que renuncia).</p>
+            </div>
+          </div>
+        </div>
+      </form>
+
+      <details class="info-details" id="tutorialDetails">
+        <summary>Ver ejemplo resuelto (no modifica tus datos)</summary>
+        <div class="details-body">
+          <div class="tutorial-block" id="tutorialContent"></div>
+        </div>
+      </details>
+
+      <details class="info-details">
+        <summary>¿Cómo leer el resultado?</summary>
+        <div class="details-body">
+          <dl>
+            <dt>Δ métrica proxy</dt>
+            <dd>Cuánto cambió tu encuesta o percepción entre el "antes" y el "después".</dd>
+            <dt>Δ métrica de negocio</dt>
+            <dd>Cuánto cambió tu problema real (ej. rotación) en el mismo periodo. Ya viene con signo: negativo si mejoró, positivo si empeoró.</dd>
+            <dt>Factor de conversión implícito</dt>
+            <dd>El "tipo de cambio" entre ambas métricas — se calcula solo dividiendo el cambio de tu métrica de negocio entre el cambio del proxy. La dirección (si el proxy ayuda o perjudica) también se detecta sola, según si ambos cambios van en el mismo sentido o no.</dd>
+            <dt>÷ 100 × población</dt>
+            <dd>Convierte "puntos porcentuales" en número real de personas o casos afectados en tu población.</dd>
+            <dt>Anualización</dt>
+            <dd>Si mediste el cambio en menos de 12 meses, se proyecta a un año para que sea comparable con el costo anual de la iniciativa.</dd>
+            <dt>Casos evitados × valor por evento</dt>
+            <dd>El número de casos (ej. renuncias) que ya no ocurrirían, multiplicado por lo que cuesta cada uno. Ese es tu valor estimado en soles.</dd>
+          </dl>
+        </div>
+      </details>
+    </section>
+
+    <!-- RECEIPT + METER -->
+    <section class="receipt-panel">
+      <div class="print-inputs" id="printInputs"></div>
+
+      <div class="receipt">
+        <div class="receipt-head">Caso de negocio — resumen</div>
+        <div class="receipt-lines" id="receiptLines"></div>
+        <div class="receipt-total">
+          <span class="r-label" id="resultLabel">RESULTADO</span>
+          <span id="resultValue">—</span>
+        </div>
+        <div class="receipt-tagline" id="receiptTag">Ingresa los datos del caso para calcular</div>
+      </div>
+
+      <div class="meter-wrap">
+        <div class="meter-title">Lectura del resultado</div>
+        <p class="meter-desc">Dónde cae tu ROI/VOI en una escala de referencia: menos de 0% significa que la iniciativa no recupera lo invertido; 100%–250% es un retorno sólido; más de 250% amerita revisar tus supuestos antes de presentarlo.</p>
+        <div class="meter-track">
+          <div class="meter-zone z-1" style="flex:1.5"></div>
+          <div class="meter-zone z-2" style="flex:2"></div>
+          <div class="meter-zone z-3" style="flex:3"></div>
+          <div class="meter-zone z-4" style="flex:2.5"></div>
+          <div class="meter-marker" id="meterMarker" style="left:0%"></div>
+        </div>
+        <div class="meter-scale"><span>&lt;0%</span><span>100%</span><span>250%</span><span>400%+</span></div>
+        <div class="meter-readout">
+          <span class="big" id="meterBig">—</span>
+          <span class="tag" id="meterTag">Sin datos</span>
+        </div>
+        <p class="meter-ratio" id="meterRatio"></p>
+        <details class="info-details ratio-explainer" id="ratioExplainer" hidden>
+          <summary>¿Qué significa "valor neto adicional"?</summary>
+          <div class="details-body" id="ratioExplainerBody"></div>
+        </details>
+        <div class="caution" id="cautionNote" hidden></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-actions">
+      <button class="btn secondary" id="copySummary">Copiar resumen</button>
+      <button class="btn" id="printBtn">Imprimir / Guardar como PDF</button>
+    </div>
+    <span class="credit">Herramienta diseñada por <em>Brando Maco</em> · HR Analytics</span>
+  </footer>
+
+</div>
+
+<script>
+(function(){
+  var mode = 'roi';
+  var factorSource = 'propio';
+  var currency = 'PEN';
+  var $ = function(id){ return document.getElementById(id); };
+  var fmtMoney = function(n){
+    if(!isFinite(n)) n = 0;
+    var neg = n < 0;
+    var locale = currency === 'PEN' ? 'es-PE' : 'en-US';
+    var sym = currency === 'PEN' ? 'S/ ' : '$ ';
+    var v = Math.round(Math.abs(n)).toLocaleString(locale);
+    return (neg ? '-' : '') + sym + v;
+  };
+  var fmtNum = function(n, dec){
+    if(!isFinite(n)) n = 0;
+    return n.toLocaleString('es-PE', {minimumFractionDigits:dec||0, maximumFractionDigits:dec||0});
+  };
+  var fmtPct = function(n){
+    if(!isFinite(n)) return '—';
+    var sign = n >= 0 ? '' : '-';
+    return sign + Math.abs(Math.round(n)) + '%';
+  };
+
+  // ---------- PRINT META (texto para el documento impreso/PDF) ----------
+  function updatePrintMeta(){
+    var modeText = mode === 'roi' ? 'ROI' : 'VOI';
+    var curText = currency === 'PEN' ? 'Soles (S/)' : 'Dólares ($)';
+    $('printMeta').textContent = 'Tipo de análisis: ' + modeText + ' · Moneda: ' + curText;
+  }
+
+  // ---------- MODE SWITCH ----------
+  var modeBtns = document.querySelectorAll('.mode-btn');
+  function setMode(newMode){
+    mode = newMode;
+    modeBtns.forEach(function(b){
+      var active = b.getAttribute('data-mode') === mode;
+      b.classList.toggle('active', active);
+      b.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.body.classList.toggle('mode-voi', mode === 'voi');
+    document.body.classList.toggle('mode-roi', mode === 'roi');
+    $('roiForm').hidden = mode !== 'roi';
+    $('voiForm').hidden = mode !== 'voi';
+    $('resultLabel').textContent = mode === 'roi' ? 'ROI' : 'VOI (estimado)';
+    // El recap y el pill siempre deben mostrar el mismo modo, venga el clic de donde venga.
+    $('guideCard').style.display = 'none';
+    $('guideRecap').classList.add('show');
+    $('guideRecapText').textContent = 'Estás en modo ' + (mode === 'roi' ? 'ROI' : 'VOI') + '.';
+    updatePrintMeta();
+    renderTutorial();
+    calculate();
+  }
+  modeBtns.forEach(function(btn){
+    btn.addEventListener('click', function(){ setMode(btn.getAttribute('data-mode')); });
+  });
+
+  // ---------- GUIDED SELECTOR ----------
+  document.querySelectorAll('.guide-opt').forEach(function(opt){
+    opt.addEventListener('click', function(){
+      setMode(opt.getAttribute('data-target'));
+    });
+  });
+  $('guideChange').addEventListener('click', function(){
+    $('guideCard').style.display = '';
+    $('guideRecap').classList.remove('show');
+  });
+
+  // ---------- CHIP TOGGLE (fuente de la métrica de negocio) ----------
+  document.querySelectorAll('.chip-opt[data-group="source"]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      factorSource = btn.getAttribute('data-value');
+      document.querySelectorAll('.chip-opt[data-group="source"]').forEach(function(b){ b.classList.toggle('active', b === btn); });
+      $('sourceCiteField').hidden = factorSource !== 'externo';
+      $('sourceNote').textContent = factorSource === 'externo'
+        ? 'Estás usando valores de "antes" y "después" tomados de un benchmark publicado, no medidos en tu organización. Decláralo así al presentar el caso.'
+        : 'Los valores de "antes" y "después" de tu métrica de negocio fueron medidos directamente en tu organización.';
+      calculate();
+    });
+  });
+  $('voiFuente').addEventListener('input', calculate);
+
+  // ---------- ETIQUETAS DINÁMICAS (nombre real de cada métrica) ----------
+  function updateMetricLabels(){
+    var pName = ($('voiMetrica').value || 'proxy').trim() || 'proxy';
+    var nName = ($('voiMetricaNegocio').value || 'métrica de negocio').trim() || 'métrica de negocio';
+    if($('lblProxy1')) $('lblProxy1').textContent = pName;
+    if($('lblProxy2')) $('lblProxy2').textContent = pName;
+    if($('lblNeg1')) $('lblNeg1').textContent = nName;
+    if($('lblNeg2')) $('lblNeg2').textContent = nName;
+  }
+  $('voiMetrica').addEventListener('input', updateMetricLabels);
+  $('voiMetricaNegocio').addEventListener('input', updateMetricLabels);
+
+  // ---------- CURRENCY ----------
+  function updateCurrencyLabels(){
+    var sym = currency === 'PEN' ? 'S/' : '$';
+    $('curLabel1').textContent = '(' + sym + ', anual)';
+    $('curLabel2').textContent = '(' + sym + ')';
+    $('curLabel3').textContent = '(' + sym + ', anual)';
+    $('curLabel4').textContent = '(' + sym + ')';
+  }
+  document.querySelectorAll('.currency-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      currency = btn.getAttribute('data-currency');
+      document.querySelectorAll('.currency-btn').forEach(function(b){
+        b.classList.toggle('active', b === btn);
+        b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
+      });
+      updateCurrencyLabels();
+      updatePrintMeta();
+      renderTutorial();
+      calculate();
+    });
+  });
+
+  // ---------- TOOLTIPS ----------
+  document.querySelectorAll('.info-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var tip = $(btn.getAttribute('data-tip'));
+      var showing = tip.classList.contains('show');
+      document.querySelectorAll('.tooltip').forEach(function(t){ t.classList.remove('show'); });
+      document.querySelectorAll('.info-btn').forEach(function(b){ b.classList.remove('open'); });
+      if(!showing){ tip.classList.add('show'); btn.classList.add('open'); }
+    });
+  });
+
+  // ---------- RECEIPT LINE BUILDER ----------
+  // num: valor numérico crudo de la fila (para colorear por signo). null = sin color especial.
+  function line(label, val, num, opts){
+    opts = opts || {};
+    var colorClass = '';
+    if(num !== null && num !== undefined && isFinite(num) && val !== ''){
+      if(num < 0) colorClass = ' r-neg';
+      else if(num > 0) colorClass = ' r-pos';
+      else colorClass = ' r-zero';
+    }
+    var cls = 'r-line' + (opts.sub ? ' r-sub' : '') + (opts.op ? ' r-op' : '');
+    return '<div class="'+cls+'"><span class="r-label">'+label+'</span><span class="r-val'+colorClass+'">'+val+'</span></div>';
+  }
+  function divider(){ return '<div class="r-divider"></div>'; }
+
+  // ---------- RESUMEN DE INSUMOS PARA EL DOCUMENTO IMPRESO ----------
+  function buildPrintInputs(){
+    var el = $('printInputs');
+    if(!el) return;
+    var html = '';
+    if(mode === 'roi'){
+      html += '<div class="print-sub">';
+      html += '<div class="print-sub-title">Datos del caso</div>';
+      html += line('Costo de la iniciativa', fmtMoney(parseFloat($('roiCosto').value) || 0), null);
+      html += line('Beneficio financiero directo', fmtMoney(parseFloat($('roiBeneficio').value) || 0), null);
+      html += '</div>';
+    } else {
+      var pName = ($('voiMetrica').value || 'proxy').trim() || 'proxy';
+      var nName = ($('voiMetricaNegocio').value || 'métrica de negocio').trim() || 'métrica de negocio';
+      var escalaVal = ($('voiEscala').value || '').trim();
+      var fuenteVal = factorSource === 'externo'
+        ? ('Benchmark externo — ' + (($('voiFuente').value || '').trim() || 'sin especificar'))
+        : 'Dato propio';
+
+      html += '<div class="print-sub"><div class="print-sub-title">1. Costo de la iniciativa</div>';
+      html += line('Costo de la iniciativa', fmtMoney(parseFloat($('voiCosto').value) || 0), null);
+      html += '</div>';
+
+      html += '<div class="print-sub"><div class="print-sub-title">2. Métrica proxy</div>';
+      html += line('Métrica proxy', pName, null);
+      if(escalaVal) html += line('Escala', escalaVal, null);
+      html += line('Periodo de medición', ($('voiPeriodo').value || '—') + ' meses', null);
+      html += line('Valor antes', $('voiAntes').value || '—', null);
+      html += line('Valor después', $('voiDespues').value || '—', null);
+      html += '</div>';
+
+      html += '<div class="print-sub"><div class="print-sub-title">3. Métrica de negocio</div>';
+      html += line('Métrica de negocio afectada', nName, null);
+      html += line('Origen de estos datos', fuenteVal, null);
+      html += line('Valor antes', $('voiNegAntes').value || '—', null);
+      html += line('Valor después', $('voiNegDespues').value || '—', null);
+      html += '</div>';
+
+      html += '<div class="print-sub"><div class="print-sub-title">4. Traducir a soles</div>';
+      html += line('Población en el alcance', $('voiPoblacion').value || '—', null);
+      html += line('Valor por evento', fmtMoney(parseFloat($('voiValorUnitario').value) || 0), null);
+      html += '</div>';
+    }
+    el.innerHTML = html;
+  }
+
+  // ---------- VALIDATION ----------
+  var fieldLabels = {
+    roiCosto: 'Costo de la iniciativa',
+    roiBeneficio: 'Beneficio financiero directo',
+    voiCosto: 'Costo de la iniciativa',
+    voiMetrica: 'Métrica proxy',
+    voiAntes: 'Valor antes (proxy)',
+    voiDespues: 'Valor después (proxy)',
+    voiMetricaNegocio: 'Métrica de negocio afectada',
+    voiNegAntes: 'Valor antes (métrica de negocio)',
+    voiNegDespues: 'Valor después (métrica de negocio)',
+    voiPoblacion: 'Población en el alcance',
+    voiValorUnitario: 'Valor por evento',
+    voiPeriodo: 'Periodo de medición'
+  };
+  function fieldsFilled(ids){
+    var missing = [];
+    ids.forEach(function(id){
+      var el = $(id);
+      var empty = el.value === null || el.value.trim() === '';
+      var wrap = el.closest('.field');
+      if(wrap) wrap.classList.toggle('invalid', empty);
+      if(empty) missing.push(fieldLabels[id] || id);
+    });
+    return missing;
+  }
+  function clearInvalid(ids){
+    ids.forEach(function(id){
+      var wrap = $(id).closest('.field');
+      if(wrap) wrap.classList.remove('invalid');
+    });
+  }
+  // ---------- RESULT COLOR (ROI/VOI): rojo negativo, verde positivo, negro cero ----------
+  function resultColor(pct){
+    if(pct === null || isNaN(pct)) return null;
+    if(pct < 0) return 'var(--red)';
+    if(pct > 0) return 'var(--green)';
+    return 'var(--ink)';
+  }
+
+  function showIncomplete(missing){
+    missing = missing || [];
+    var html = '<div class="r-missing-head">FALTAN DATOS OBLIGATORIOS</div>';
+    html += missing.map(function(m){ return '<div class="r-missing-item">' + m.toUpperCase() + '</div>'; }).join('');
+    $('receiptLines').innerHTML = html;
+    $('resultValue').textContent = '—';
+    $('resultValue').classList.add('dim');
+    $('resultValue').style.color = '';
+    $('receiptTag').textContent = 'Completa los campos resaltados en rojo para calcular.';
+    if($('factorAutoDisplay')) $('factorAutoDisplay').textContent = 'Factor calculado:    —\nDirección detectada: —';
+    if($('printInputs')) $('printInputs').innerHTML = '';
+    updateMeter(null, null, null);
+  }
+
+  // ---------- CALCULATE ----------
+  function calculate(){
+    $('resultValue').classList.remove('dim');    var html = '';
+    var resultPct = null;
+    var tagline = '';
+
+    if(mode === 'roi'){
+      var missingRoi = fieldsFilled(['roiCosto','roiBeneficio']);
+      if(missingRoi.length){ showIncomplete(missingRoi); return; }
+
+      var costo = parseFloat($('roiCosto').value) || 0;
+      var beneficio = parseFloat($('roiBeneficio').value) || 0;
+      var neto = beneficio - costo;
+      resultPct = costo !== 0 ? (neto / costo) * 100 : null;
+
+      html += line('Beneficio financiero', fmtMoney(beneficio), beneficio);
+      html += line('− Costo de iniciativa', fmtMoney(costo), costo);
+      html += divider();
+      html += line('= Beneficio neto', fmtMoney(neto), neto);
+      html += line('÷ Costo de iniciativa', fmtMoney(costo), costo, {op:true, sub:true});
+
+      $('resultValue').textContent = resultPct === null ? '—' : fmtPct(resultPct);
+      $('resultValue').style.color = resultColor(resultPct) || '';
+      tagline = costo === 0 ? 'Ingresa un costo mayor a cero.' :
+        'Por cada sol invertido, la iniciativa retorna ' + (costo ? (beneficio/costo).toFixed(2) : '—') + ' soles.';
+      $('receiptLines').innerHTML = html;
+      $('receiptTag').textContent = tagline;
+      buildPrintInputs();
+      updateMeter(resultPct, costo, beneficio);
+      return;
+
+    } else {
+      var required = ['voiCosto','voiMetrica','voiAntes','voiDespues','voiMetricaNegocio','voiNegAntes','voiNegDespues','voiPoblacion','voiValorUnitario','voiPeriodo'];
+      var missingVoi = fieldsFilled(required);
+      clearInvalid(['voiEscala']);
+      if(missingVoi.length){ showIncomplete(missingVoi); return; }
+
+      var vCosto = parseFloat($('voiCosto').value) || 0;
+      var antes = parseFloat($('voiAntes').value) || 0;
+      var despues = parseFloat($('voiDespues').value) || 0;
+      var negAntes = parseFloat($('voiNegAntes').value) || 0;
+      var negDespues = parseFloat($('voiNegDespues').value) || 0;
+      var poblacion = parseFloat($('voiPoblacion').value) || 0;
+      var valorUnit = parseFloat($('voiValorUnitario').value) || 0;
+      var periodoMeses = parseFloat($('voiPeriodo').value) || 12;
+      if(periodoMeses <= 0) periodoMeses = 12;
+      var nombreMetrica = ($('voiMetrica').value || 'proxy').trim() || 'proxy';
+      var nombreNegocio = ($('voiMetricaNegocio').value || 'métrica de negocio').trim() || 'métrica de negocio';
+      var escala = ($('voiEscala').value || '').trim();
+      var fuenteTexto = (factorSource === 'externo')
+        ? ('benchmark: ' + (($('voiFuente').value||'').trim() || 'sin especificar'))
+        : 'dato propio';
+
+      // El factor y la dirección ya no se ingresan a mano: se calculan solos
+      // a partir de cuánto cambió el proxy y cuánto cambió la métrica de negocio.
+      var delta = despues - antes;
+      var businessChange = negDespues - negAntes; // el cambio real, ya con su signo correcto
+      var factorCalc = delta !== 0 ? Math.abs(businessChange / delta) : 0;
+      var direccionTexto;
+      var direccionCorta;
+      if(delta === 0){ direccionTexto = 'indeterminada (el proxy no cambió)'; direccionCorta = 'indeterminada'; }
+      else if((delta > 0) === (businessChange > 0)){ direccionTexto = 'relación directa (proxy sube → problema sube)'; direccionCorta = 'directa'; }
+      else { direccionTexto = 'relación inversa (proxy sube → problema baja)'; direccionCorta = 'inversa'; }
+      updateFactorAutoDisplay(factorCalc, direccionTexto);
+
+      var eventosVariacion = (-businessChange / 100) * poblacion; // positivo = evitados, negativo = adicionales
+      var annualFactor = 12 / periodoMeses;
+      var eventosAnual = eventosVariacion * annualFactor;
+      var valorEstimado = eventosAnual * valorUnit;
+      var netoV = valorEstimado - vCosto;
+      resultPct = vCosto !== 0 ? (netoV / vCosto) * 100 : null;
+
+      var deltaLabel = 'Δ Proxy · ' + nombreMetrica + ' (después − antes)' + (escala ? ' [' + escala + ']' : '');
+      html += line(deltaLabel, (delta>=0?'+':'') + fmtNum(delta,1) + ' pts', delta);
+      html += line('Δ Negocio · ' + nombreNegocio + ' (después − antes)', (businessChange>=0?'+':'') + fmtNum(businessChange,2) + ' pts', businessChange);
+      html += line('= Factor de conversión (' + direccionCorta + ' · ' + fuenteTexto + ')', fmtNum(factorCalc,2), factorCalc, {sub:true, op:true});
+      html += line('× Población en alcance', fmtNum(poblacion) + ' colab.', poblacion, {sub:true, op:true});
+      html += line('÷ 100', '', null, {sub:true, op:true});
+      if(Math.abs(annualFactor - 1) > 0.001){
+        html += line('× Anualización (medido en ' + fmtNum(periodoMeses,0) + ' meses)', '×' + annualFactor.toFixed(2), annualFactor, {sub:true, op:true});
+      }
+      var casosLabel = eventosAnual >= 0 ? '= Casos evitados (estimado)' : '= Casos adicionales (estimado)';
+      html += line(casosLabel, fmtNum(Math.abs(eventosAnual),1), eventosAnual);
+      html += line('× Valor por evento', fmtMoney(valorUnit), valorUnit, {sub:true, op:true});
+      html += divider();
+      html += line('= Valor estimado', fmtMoney(valorEstimado), valorEstimado);
+      html += line('− Costo de iniciativa', fmtMoney(vCosto), vCosto);
+      html += divider();
+      html += line('= Valor neto estimado', fmtMoney(netoV), netoV);
+
+      $('resultValue').textContent = resultPct === null ? '—' : fmtPct(resultPct);
+      $('resultValue').style.color = resultColor(resultPct) || '';
+      tagline = vCosto === 0 ? 'Ingresa un costo mayor a cero.' :
+        'Valor estimado, basado en una correlación de ' + nombreMetrica + ' → ' + nombreNegocio + '. No es un ahorro contable directo.';
+    }
+
+    $('receiptLines').innerHTML = html;
+    $('receiptTag').textContent = tagline;
+    buildPrintInputs();
+    updateMeter(resultPct, vCosto, valorEstimado);
+  }
+
+  // ---------- Vista previa del factor calculado, dentro del formulario ----------
+  function updateFactorAutoDisplay(factorCalc, direccionTexto){
+    var el = $('factorAutoDisplay');
+    if(el) el.textContent = 'Factor calculado:    ' + fmtNum(factorCalc,2) + '\nDirección detectada: ' + direccionTexto;
+  }
+
+  // ---------- RATIO FORMAT (ej. 2:1) ----------
+  function fmtRatio(x){
+    var r = Math.round(x * 10) / 10;
+    return (Math.abs(r % 1) < 0.001) ? r.toFixed(0) : r.toFixed(1);
+  }
+
+  // ---------- METER ----------
+  function updateMeter(pct, costoUsado, totalUsado){
+    var marker = $('meterMarker');
+    var big = $('meterBig');
+    var tag = $('meterTag');
+    var caution = $('cautionNote');
+    var ratioEl = $('meterRatio');
+    var explainer = $('ratioExplainer');
+
+    var externalWarning = (mode === 'voi' && factorSource === 'externo')
+      ? 'El factor de conversión viene de un benchmark externo, no de tu propia data histórica. Presenta este resultado como una hipótesis a validar, no como un hecho medido en tu organización.'
+      : null;
+
+    if(pct === null || isNaN(pct)){
+      marker.style.left = '0%';
+      big.textContent = '—';
+      tag.textContent = 'Sin datos';
+      tag.style.background = 'var(--line-soft)';
+      tag.style.color = 'var(--ink-faint)';
+      tag.style.border = 'none';
+      ratioEl.textContent = '';
+      explainer.hidden = true;
+      caution.hidden = true;
+      return;
+    }
+
+    var clamped = Math.max(-50, Math.min(400, pct));
+    var pos = ((clamped - (-50)) / (400 - (-50))) * 100;
+    marker.style.left = pos + '%';
+
+    big.textContent = fmtPct(pct);
+    var color = resultColor(pct) || 'var(--ink)';
+    big.style.color = color;
+
+    var label;
+    if(pct < 0){ label = 'Pérdida — no se recupera la inversión'; }
+    else if(pct === 0){ label = 'Sin variación'; }
+    else if(pct < 100){ label = 'Retorno parcial'; }
+    else if(pct < 250){ label = 'Retorno sólido'; }
+    else { label = 'Retorno alto'; }
+    tag.textContent = label;
+    tag.style.background = 'transparent';
+    tag.style.color = color;
+    tag.style.border = '1px solid ' + color;
+
+    // Proporción tipo "2:1", en la misma unidad monetaria elegida por el usuario.
+    var moneda = currency === 'PEN' ? 'sol' : 'dólar';
+    var ratio = pct / 100;
+    var ratioText;
+    if(pct === 0){
+      ratioText = '<span class="ratio-num">0:1</span> — la iniciativa ni gana ni pierde valor neto sobre lo invertido.';
+    } else if(pct > 0){
+      ratioText = '<span class="ratio-num">' + fmtRatio(ratio) + ':1</span> — por cada ' + moneda + ' invertido, recuperas ' + fmtRatio(ratio) + ' ' + moneda + (fmtRatio(ratio) === '1' ? '' : 'es') + ' de valor neto adicional.';
+    } else {
+      var ratioAbs = fmtRatio(Math.abs(ratio));
+      ratioText = '<span class="ratio-num">-' + ratioAbs + ':1</span> — por cada ' + moneda + ' invertido, se pierden ' + ratioAbs + ' ' + moneda + (ratioAbs === '1' ? '' : 'es') + ' respecto al costo de la iniciativa.';
+    }
+    ratioEl.innerHTML = ratioText;
+    ratioEl.querySelector('.ratio-num').style.color = color;
+
+    // Explicación con cifras reales: retorno total vs. valor neto adicional.
+    if(costoUsado && isFinite(costoUsado) && costoUsado > 0 && totalUsado !== null && totalUsado !== undefined && isFinite(totalUsado)){
+      explainer.hidden = false;
+      var netoUsado = totalUsado - costoUsado;
+      var totalRatio = totalUsado / costoUsado;
+      var body =
+        '<p style="margin:0 0 8px;">Con tus datos actuales: inviertes <b>' + fmtMoney(costoUsado) + '</b> y el valor total estimado es <b>' + fmtMoney(totalUsado) + '</b>.</p>' +
+        '<p style="margin:0 0 8px;">Eso se descompone en dos partes:</p>' +
+        '<p style="margin:0 0 4px;">1. <b>' + fmtMoney(Math.min(costoUsado, totalUsado)) + '</b> — la parte que simplemente cubre lo que invertiste (recuperar tu ' + moneda + ').</p>' +
+        '<p style="margin:0 0 10px;">2. <b>' + fmtMoney(netoUsado) + '</b> — lo que queda ' + (netoUsado >= 0 ? 'de más' : 'de menos') + ' después de cubrir ese costo. Esto es el <b>valor neto</b>.</p>' +
+        '<p style="margin:0;">El retorno <i>total</i> es de ' + fmtRatio(totalRatio) + ':1 (todo lo que regresa por cada ' + moneda + '). El "' + fmtRatio(ratio) + ':1" que mostramos arriba es solo la parte 2 — la ganancia neta, sin contar el ' + moneda + ' que ya era tuyo. Por eso decimos "adicional": es lo que se suma por encima de haber recuperado la inversión, no el total que regresa.</p>';
+      $('ratioExplainerBody').innerHTML = body;
+    } else {
+      explainer.hidden = true;
+    }
+
+    var messages = [];
+    if(pct >= 250){
+      messages.push('Un resultado tan alto amerita revisar supuestos antes de presentarlo: factor de conversión, tamaño de muestra y posible sesgo de selección.');
+    } else if(pct < 0){
+      messages.push('El resultado es negativo con los datos actuales: el beneficio estimado no cubre el costo de la iniciativa.');
+    }
+    if(externalWarning) messages.push(externalWarning);
+
+    if(messages.length){
+      caution.hidden = false;
+      caution.innerHTML = messages.map(function(m){ return '<div>'+m+'</div>'; }).join('');
+    } else {
+      caution.hidden = true;
+    }
+  }
+
+  // ---------- TUTORIAL PANEL ----------
+  function renderTutorial(){
+    var box = $('tutorialContent');
+    if(mode === 'roi'){
+      box.textContent =
+'Ejemplo: Programa de bienestar\n\n' +
+'Costo de la iniciativa:        ' + fmtMoney(50000) + '\n' +
+'Beneficio financiero directo:  ' + fmtMoney(150000) + '\n' +
+'                                --------\n' +
+'ROI = (150,000 - 50,000) / 50,000 × 100%\n' +
+'ROI = 200%';
+    } else {
+      box.textContent =
+'Ejemplo: Horario híbrido\n\n' +
+'Costo de la iniciativa:         ' + fmtMoney(45000) + '\n' +
+'Métrica proxy:                  eNPS  [escala: -100 a 100]\n' +
+'Periodo de medición:            12 meses\n' +
+'Proxy antes / después:          12 → 34\n' +
+'Métrica de negocio afectada:    rotación\n' +
+'Rotación antes / después:       28% → 20.3%\n' +
+'Factor calculado:               0.35  (automático · dato propio)\n' +
+'Dirección detectada:            relación inversa\n' +
+'Población en alcance:           180 colaboradores\n' +
+'Valor por evento evitado:       ' + fmtMoney(18000) + '\n' +
+'                                 --------\n' +
+'VOI ≈ 454%  (retorno alto — revisar supuestos)';
+    }
+  }
+
+  // ---------- LISTENERS ----------
+  document.querySelectorAll('#roiForm input, #voiForm input').forEach(function(el){
+    el.addEventListener('input', calculate);
+  });
+
+  // ---------- EXAMPLES ----------
+  document.querySelectorAll('.example-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var ex = btn.getAttribute('data-example');
+      if(ex === 'bienestar'){
+        setMode('roi');
+        $('roiCosto').value = 50000;
+        $('roiBeneficio').value = 150000;
+      } else if(ex === 'flex'){
+        setMode('voi');
+        $('voiCosto').value = 45000;
+        $('voiMetrica').value = 'eNPS';
+        $('voiEscala').value = '-100 a 100';
+        $('voiPeriodo').value = 12;
+        $('voiAntes').value = 12;
+        $('voiDespues').value = 34;
+        $('voiMetricaNegocio').value = 'rotación';
+        $('voiNegAntes').value = 28;
+        $('voiNegDespues').value = 20.3;
+        $('voiPoblacion').value = 180;
+        $('voiValorUnitario').value = 18000;
+        document.querySelectorAll('.chip-opt[data-group="source"]')[0].click();
+      } else {
+        document.querySelectorAll('#roiForm input, #voiForm input[type="number"]').forEach(function(i){ i.value=''; });
+        $('voiFuente').value = '';
+        $('voiEscala').value = '';
+        document.querySelectorAll('.chip-opt[data-group="source"]')[0].click();
+        $('guideCard').style.display = '';
+        $('guideRecap').classList.remove('show');
+      }
+      updateMetricLabels();
+      calculate();
+    });
+  });
+
+  // ---------- COPY SUMMARY ----------
+  $('copySummary').addEventListener('click', function(){
+    var text = $('receiptLines').innerText.replace(/\n\s*\n/g,'\n');
+    var result = mode === 'roi' ? 'ROI' : 'VOI';
+    var full = 'CASO DE NEGOCIO — ' + result + '\n\n' + text + '\n\nRESULTADO: ' + $('resultValue').textContent + '\n' + $('receiptTag').textContent;
+    if(navigator.clipboard){
+      navigator.clipboard.writeText(full).then(function(){
+        var original = $('copySummary').textContent;
+        $('copySummary').textContent = 'Copiado ✓';
+        setTimeout(function(){ $('copySummary').textContent = original; }, 1500);
+      });
+    }
+  });
+
+  $('printBtn').addEventListener('click', function(){ window.print(); });
+
+  updateCurrencyLabels();
+  updatePrintMeta();
+  updateMetricLabels();
+  renderTutorial();
+  calculate();
+})();
+</script>
+</body>
+</html>
